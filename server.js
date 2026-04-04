@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: process.env.CLIENT || "http://lcalhost:5173",
+  origin: process.env.CLIENT || "http://localhost:5173",
   credentials: true
 }));
 app.use(express.json());
