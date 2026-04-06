@@ -34,7 +34,7 @@ const signup = async (req, res) => {
     const user = await User.create({ email, password });
     const token = signToken(user._id);
     setCookie(res, token);
-    res.status(201).json({ user: user.toSafeObject() });
+    res.status(201).json({ user: user.toSafeObject(), token });
   } catch (err) {
     res.status(500).json({ message: "Server error during signup.", error: err.message });
   }
@@ -52,14 +52,20 @@ const login = async (req, res) => {
     }
     const token = signToken(user._id);
     setCookie(res, token);
-    res.json({ user: user.toSafeObject() });
+    res.json({ user: user.toSafeObject(), token });
   } catch (err) {
     res.status(500).json({ message: "Server error during login.", error: err.message });
   }
 };
 
 const logout = (req, res) => {
-  res.cookie("jwt", "", { httpOnly: true, maxAge: 0 });
+  const isProd = process.env.NODE_ENV === "production";
+  res.cookie("jwt", "", {
+    httpOnly: true,
+    expires: new Date(0),
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax"
+  });
   res.json({ message: "Logged out successfully." });
 };
 
