@@ -1,23 +1,54 @@
 const User = require("../models/User");
 const { sendDietChartEmail } = require("../utils/emailService");
 
-// Get all users with basic info and stats
+// Get all users with basic info and stats (paginated)
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: { $ne: "admin" } })
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { role: { $ne: "admin" } };
+
+    // Fetch paginated users
+    const users = await User.find(query)
       .select("email profile onboardingComplete savedDietPlan createdAt")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
+    // Fetch global stats (calculated once, not per page)
+    const statsPromises = [
+      User.countDocuments(query),
+      User.countDocuments({ ...query, onboardingComplete: true }),
+      User.countDocuments({ ...query, onboardingComplete: false }),
+      User.countDocuments({ ...query, "savedDietPlan.meals": { $exists: true, $not: { $size: 0 } } })
+    ];
 
+    const [totalUsers, onboardingCompleted, onboardingPending, dietPlansCreated] = await Promise.all(statsPromises);
 
     const stats = {
-      totalUsers: users.length,
-      onboardingCompleted: users.filter(u => u.onboardingComplete).length,
-      onboardingPending: users.filter(u => !u.onboardingComplete).length,
-      dietPlansCreated: users.filter(u => u.savedDietPlan?.meals).length
+      totalUsers,
+      onboardingCompleted,
+      onboardingPending,
+      dietPlansCreated
     };
 
-    res.status(200).json({ success: true, stats, users });
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.status(200).json({
+      success: true,
+      stats,
+      users,
+      pagination: {
+        totalUsers,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: "Error fetching users", error: err.message });
   }
@@ -180,23 +211,43 @@ exports.exportAllUsersData = async (req, res) => {
 
 
 
-// Search users
+// Search users (paginated)
 exports.searchUsers = async (req, res) => {
   try {
     const { query } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
     if (!query || query.trim() === "") {
       return res.status(400).json({ message: "Search query is required" });
     }
 
-    const users = await User.find({
+    const searchQuery = {
       role: { $ne: "admin" },
       email: { $regex: query, $options: "i" }
-    }).select("email profile onboardingComplete createdAt");
+    };
 
+    const totalResults = await User.countDocuments(searchQuery);
+    const users = await User.find(searchQuery)
+      .select("email profile onboardingComplete createdAt")
+      .skip(skip)
+      .limit(limit);
 
+    const totalPages = Math.ceil(totalResults / limit);
 
-    res.status(200).json({ success: true, results: users });
+    res.status(200).json({
+      success: true,
+      results: users,
+      pagination: {
+        totalResults,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: "Error searching users", error: err.message });
   }
