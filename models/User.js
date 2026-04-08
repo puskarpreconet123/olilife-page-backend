@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema({
   profile: { type: profileSchema, default: () => ({}) },
   savedDietPlan: { type: savedDietPlanSchema, default: () => ({}) },
   onboardingComplete: { type: Boolean, default: false },
+  role: { type: String, enum: ["user", "admin"], default: "user" },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const { sendDietChartEmail } = require("../utils/emailService");
 
 const getProfile = async (req, res) => {
   try {
@@ -67,4 +68,21 @@ const clearDietPlan = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, updateProfile, saveDietPlan, clearDietPlan };
+const sendDietChart = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (!user.savedDietPlan?.meals?.length) {
+      return res.status(400).json({ message: "You have no generated diet chart to send." });
+    }
+
+    await sendDietChartEmail(user.email, user.profile, user.savedDietPlan);
+
+    res.json({ success: true, message: `Diet chart sent to ${user.email}` });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to send diet chart email", error: err.message });
+  }
+};
+
+module.exports = { getProfile, updateProfile, saveDietPlan, clearDietPlan, sendDietChart };

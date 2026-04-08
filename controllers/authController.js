@@ -81,6 +81,7 @@ const verifyOtp = async (req, res) => {
     await User.collection.insertOne({
       email: pending.email,
       password: pending.passwordHash,
+      role: "user",
       isVerified: true,
       profile: {},
       savedDietPlan: {},
@@ -95,7 +96,7 @@ const verifyOtp = async (req, res) => {
     const savedUser = await User.findOne({ email: pending.email });
     const token = signToken(savedUser._id);
     setCookie(res, token);
-    res.status(201).json({ user: savedUser.toSafeObject() });
+    res.status(201).json({ user: savedUser.toSafeObject(), token });
   } catch (err) {
     console.error("verifyOtp error:", err.message);
     res.status(500).json({ message: "Verification failed. Please try again." });
@@ -106,16 +107,34 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
+      console.error("[auth] login failed: missing email or password");
       return res.status(400).json({ message: "Email and password are required." });
     }
-    const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password))) {
+
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log(`[auth] login attempt: ${normalizedEmail}`);
+
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      console.error(`[auth] login failed: user not found for ${normalizedEmail}`);
       return res.status(401).json({ message: "Incorrect email or password." });
     }
+
+    const passwordMatches = await user.comparePassword(password);
+    const trimmedPassword = password.trim();
+    console.log(`[auth] login password debug: len=${password.length} trimmedLen=${trimmedPassword.length} hasWhitespace=${password !== trimmedPassword}`);
+
+    if (!passwordMatches) {
+      console.error(`[auth] login failed: invalid password for ${normalizedEmail} (len=${password.length} trimmedLen=${trimmedPassword.length})`);
+      return res.status(401).json({ message: "Incorrect email or password." });
+    }
+
+    console.log(`[auth] login successful: ${normalizedEmail} (role=${user.role})`);
     const token = signToken(user._id);
     setCookie(res, token);
     res.json({ user: user.toSafeObject(), token });
   } catch (err) {
+    console.error(`[auth] login error: ${err.message}`);
     res.status(500).json({ message: "Server error during login.", error: err.message });
   }
 };
