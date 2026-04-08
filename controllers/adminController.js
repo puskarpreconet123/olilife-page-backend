@@ -22,7 +22,7 @@ exports.getAllUsers = async (req, res) => {
       User.countDocuments(query),
       User.countDocuments({ ...query, onboardingComplete: true }),
       User.countDocuments({ ...query, onboardingComplete: false }),
-      User.countDocuments({ ...query, "savedDietPlan.meals": { $exists: true, $not: { $size: 0 } } })
+      User.countDocuments({ ...query, "savedDietPlan.meals.0": { $exists: true } })
     ];
 
     const [totalUsers, onboardingCompleted, onboardingPending, dietPlansCreated] = await Promise.all(statsPromises);
@@ -80,7 +80,7 @@ exports.getAnalytics = async (req, res) => {
     // Count various stats
     const totalUsers = users.length;
     const onboardingCompleted = users.filter(u => u.onboardingComplete).length;
-    const dietPlansCreated = users.filter(u => u.savedDietPlan?.meals).length;
+    const dietPlansCreated = users.filter(u => u.savedDietPlan?.meals?.length).length;
 
     // Goal distribution
     const goalsCount = {};
