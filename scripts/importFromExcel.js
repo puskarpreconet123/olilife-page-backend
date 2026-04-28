@@ -18,6 +18,14 @@ function normDiabetic(val) {
   return "No";
 }
 
+function parseAllergens(val) {
+  const s = String(val || "").trim();
+  if (!s) return [];
+  const lower = s.toLowerCase();
+  if (lower === "none" || lower === "n/a" || lower === "na") return [];
+  return s.split(/[,;/]+/).map(x => x.trim()).filter(Boolean);
+}
+
 function autoRange(cal) {
   const n = Number(cal);
   if (!n) return "";
@@ -74,7 +82,7 @@ function parseFile(filePath) {
         fiber:            Number(row["Fiber (g)"]    || row["fiber"])    || 0,
         vegetarian:       String(row["Vegetarian"]   || row["vegetarian"] || "Yes").trim(),
         diabetic_friendly:normDiabetic(row["Diabetic Friendly"] || row["diabetic_friendly"]),
-        allergens:        [],  // not in this Excel; add a column if needed
+        allergens:        parseAllergens(row["Allergens"] || row["allergens"]),
       });
     });
   });
