@@ -87,7 +87,8 @@ const profileSchema = new mongoose.Schema({
     type: [String], 
     default: [],
     enum: ["none", "liver", "kidney", "lung", "heart", "thyroid", "digestive"]
-  }
+  },
+  preferredRegionalMeal: { type: String, default: "" }
 }, { _id: false });
 
 const savedDietPlanSchema = new mongoose.Schema({
