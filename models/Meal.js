@@ -12,7 +12,8 @@ const mealSchema = new mongoose.Schema({
   vegetarian:       { type: String },
   diabetic_friendly:{ type: String },
   allergens:        { type: [String], default: [] },
-  region:           { type: String }
+  region:           { type: String },
+  top_priority:     { type: Boolean, default: false }
 }, { versionKey: false });
 
 module.exports = mongoose.model("Meal", mealSchema);

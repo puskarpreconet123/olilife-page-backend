@@ -61,6 +61,8 @@ function parseFile(filePath) {
       const calorie_range= String(row["Calorie Range"] || row["calorie_range"] || "").trim()
                            || autoRange(calories);
 
+      const topPriority = String(row["Top_Priority_Food"] || row["Top Priority Food"] || "").trim().toLowerCase() === "yes";
+
       meals.push({
         name,
         type: resolvedType,
@@ -73,6 +75,8 @@ function parseFile(filePath) {
         vegetarian:       String(row["Vegetarian"]   || row["vegetarian"] || "Yes").trim(),
         diabetic_friendly:normDiabetic(row["Diabetic Friendly"] || row["diabetic_friendly"]),
         allergens:        [],
+        region:           sheetName.trim(),
+        top_priority:     topPriority
       });
     });
   });

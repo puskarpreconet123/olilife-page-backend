@@ -75,6 +75,7 @@ function parseFile(filePath) {
       
       const vegVal = String(row["Veg_NonVeg"] || row["Veg/NonVeg"] || row["vegetarian"] || "Veg").trim().toLowerCase();
       const vegetarian = (vegVal === "veg" || vegVal === "yes") ? "Yes" : "No";
+      const topPriority = String(row["Top_Priority_Food"] || row["Top Priority Food"] || "").trim().toLowerCase() === "yes";
 
       meals.push({
         name,
@@ -88,7 +89,8 @@ function parseFile(filePath) {
         vegetarian,
         diabetic_friendly:normDiabetic(row["Diabetic_Friendly_Status"] || row["Diabetic Friendly"] || row["diabetic_friendly"]),
         allergens:        parseAllergens(row["Allergy_Details"] || row["Allergens"] || row["allergens"]),
-        region:           sheetName.trim()
+        region:           sheetName.trim(),
+        top_priority:     topPriority
       });
     });
   });
