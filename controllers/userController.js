@@ -20,7 +20,7 @@ const updateProfile = async (req, res) => {
     const { profile, onboardingComplete } = req.body;
     const update = {};
     if (profile !== undefined) {
-      const allowed = ["age","gender","height","heightUnit","weight","activityLevel","goal",
+      const allowed = ["age","gender","height","heightUnit","weight","activityLevel","goal","dietPreference",
         "diabeticStatus","hasAllergies","allergyList","customAllergy","chronicConditions", "preferredRegionalMeal", "prioritizeBengaliClassics"];
       allowed.forEach((key) => {
         if (profile[key] !== undefined) update[`profile.${key}`] = profile[key];

@@ -28,13 +28,8 @@ const profileSchema = new mongoose.Schema({
     validate: {
       validator: function(v) {
         if (!v) return true;
-        const unit = this.heightUnit || "cm";
-        if (unit === "cm") {
-          const n = parseInt(v);
-          return n >= 30 && n <= 300;
-        }
         const n = parseFloat(v);
-        return n > 0 && n <= 10;
+        return (n > 0 && n <= 10) || (n >= 30 && n <= 300);
       },
       message: "Height is out of valid range."
     }
