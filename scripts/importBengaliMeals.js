@@ -47,7 +47,7 @@ function parseFile(filePath) {
     rows.forEach((row, i) => {
       const lineNo = i + 2;
       const name = String(
-        row["Professional_Dish_Name"] || row["Professional Dish Name"] || row["Meal Name"] || row["name"] || ""
+        row["Professional_Dish_Name"] || row["Professional Dish Name"] || row["Meal Name"] || row["name"] || row["Meal Description"] || ""
       ).trim();
 
       if (!name) {
@@ -55,13 +55,15 @@ function parseFile(filePath) {
         return;
       }
 
-      const rawCategory = String(row["Meal_Category"] || row["Meal Category"] || row["type"] || "").trim().toLowerCase();
+      const rawCategory = String(row["Meal_Category"] || row["Meal Category"] || row["type"] || row["Meal Type"] || "").trim().toLowerCase();
       const typeMap = {
         breakfast: "breakfast",
         lunch: "lunch",
         dinner: "dinner",
         snacks: "snacks",
         snack: "snacks",
+        "evening snack": "snacks",
+        "evening snacks": "snacks",
         dessert: "dessert",
         desserts: "dessert",
         deserts: "dessert"
@@ -73,12 +75,29 @@ function parseFile(filePath) {
         return;
       }
 
-      const calories = Number(row["Exact_Target_Calorie"] || row["Estimated_Calorie"] || row["calories"] || row["Calories (kcal)"]) || 0;
+      const calories = Number(row["Exact_Target_Calorie"] || row["Estimated_Calorie"] || row["calories"] || row["Calories (kcal)"] || row["Calories"]) || 0;
       const calorie_range = String(row["Calorie_Bracket"] || row["Calorie Bracket"] || row["calorie_range"] || "").trim() || autoRange(calories);
       
-      const vegVal = String(row["Veg_NonVeg"] || row["Veg/NonVeg"] || row["vegetarian"] || "Veg").trim().toLowerCase();
-      const vegetarian = (vegVal === "veg" || vegVal === "yes") ? "Yes" : "No";
+      let vegetarian = "Yes";
+      const hasVegCol = row["Veg_NonVeg"] !== undefined || row["Veg/NonVeg"] !== undefined || row["vegetarian"] !== undefined;
+      if (hasVegCol) {
+        const vegVal = String(row["Veg_NonVeg"] || row["Veg/NonVeg"] || row["vegetarian"] || "Veg").trim().toLowerCase();
+        vegetarian = (vegVal === "veg" || vegVal === "yes" || vegVal === "vegetarian") ? "Yes" : "No";
+      } else {
+        const nameLower = name.toLowerCase();
+        const nonVegKeywords = ["egg", "chicken", "fish", "meat", "mutton", "prawn", "crab", "shrimp", "non-veg", "beef", "pork"];
+        if (nonVegKeywords.some(keyword => nameLower.includes(keyword))) {
+          vegetarian = "No";
+        }
+      }
+
       const topPriority = String(row["Top_Priority_Food"] || row["Top Priority Food"] || "").trim().toLowerCase() === "yes";
+
+      let diabeticFriendly = "Yes";
+      const hasDiabeticCol = row["Diabetic_Friendly_Status"] !== undefined || row["Diabetic Friendly"] !== undefined || row["diabetic_friendly"] !== undefined;
+      if (hasDiabeticCol) {
+        diabeticFriendly = normDiabetic(row["Diabetic_Friendly_Status"] || row["Diabetic Friendly"] || row["diabetic_friendly"]);
+      }
 
       meals.push({
         name,
@@ -87,12 +106,12 @@ function parseFile(filePath) {
         calories,
         protein:          Number(row["Protein_g"] || row["Protein (g)"] || row["protein"]) || 0,
         carbs:            Number(row["Carbs_g"] || row["Carbs (g)"] || row["carbs"]) || 0,
-        fats:             Number(row["Fat_g"] || row["Fat (g)"] || row["fats"]) || 0,
-        fiber:            Number(row["Fiber_g"] || row["Fiber (g)"] || row["fiber"]) || 0,
+        fats:             Number(row["Fat_g"] || row["Fat (g)"] || row["fats"] || row["Fat"] || row["Fat (g)"]) || 0,
+        fiber:            Number(row["Fiber_g"] || row["Fiber (g)"] || row["fiber"] || row["Fiber"]) || 0,
         vegetarian,
-        diabetic_friendly:normDiabetic(row["Diabetic_Friendly_Status"] || row["Diabetic Friendly"] || row["diabetic_friendly"]),
+        diabetic_friendly:diabeticFriendly,
         allergens:        parseAllergens(row["Allergy_Details"] || row["Allergens"] || row["allergens"]),
-        region:           "Kolkata_Bengali", // Force region to Kolkata_Bengali
+        region:           "Kolkata_Bengali_New", // Force region to Kolkata_Bengali_New
         top_priority:     topPriority
       });
     });
@@ -128,15 +147,15 @@ async function run() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("Connected to MongoDB.");
 
-  // Delete existing meals for Kolkata_Bengali only
-  console.log("Deleting existing Kolkata_Bengali meals from the database...");
-  const deleteResult = await Meal.deleteMany({ region: "Kolkata_Bengali" });
-  console.log(`Deleted ${deleteResult.deletedCount} existing Kolkata_Bengali meals.`);
+  // Delete existing meals for Kolkata_Bengali_New only
+  console.log("Deleting existing Kolkata_Bengali_New meals from the database...");
+  const deleteResult = await Meal.deleteMany({ region: "Kolkata_Bengali_New" });
+  console.log(`Deleted ${deleteResult.deletedCount} existing Kolkata_Bengali_New meals.`);
 
   // Insert new meals
   console.log("Inserting new meals...");
   const insertResult = await Meal.insertMany(meals);
-  console.log(`Successfully seeded ${insertResult.length} Kolkata_Bengali meals into MongoDB.`);
+  console.log(`Successfully seeded ${insertResult.length} Kolkata_Bengali_New meals into MongoDB.`);
 
   await mongoose.disconnect();
   console.log("Done.");
